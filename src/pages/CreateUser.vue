@@ -2,6 +2,7 @@
   <q-page class="flex flex-center q-pa-md">
     <div class="floating-container">
       <div class="row q-col-gutter-lg">
+        <!-- Input Fields -->
         <div class="col-6">
           <q-input
             outlined
@@ -57,41 +58,124 @@
           />
         </div>
       </div>
+      <!-- Button -->
       <div class="btn-container">
-        <q-btn class="btnSave" color="primary" label="Save" />
+        <q-btn
+          class="btnSave"
+          color="primary"
+          :label="isUpdate ? 'Update' : 'Save'"
+          :loading="btnLoadingState"
+          @click="saveUser"
+        />
       </div>
     </div>
   </q-page>
 </template>
 
 <script>
-
-import { onMounted } from "vue"; // Import onMounted/
-import axios from "axios"; // Import axios
+import { ref } from "vue";
+import axios from "axios";
 
 export default {
   data() {
     return {
-      fn: '',
-      mn: '',
-      ln: '',
-      ea: '',
-      add: '',
-      con: '',
-      dense: true, // Optional: compact inputs
+      rows: [], // User list
+      fn: "", // First Name
+      mn: "", // Middle Name
+      ln: "", // Last Name
+      ea: "", // Email Address
+      add: "", // Address
+      con: "", // Contact
+      dense: true, // Compact input
+      btnLoadingState: false, // Loading state for the button
+      isUpdate: false, // Tracks if this is an update
+      selectedId: null, // ID of the user being edited
     };
   },
   mounted() {
-    // Fetch data from route query
     const query = this.$route.query;
 
-    this.fn = query.firstName || '';
-    this.mn = query.middleName || '';
-    this.ln = query.lastName || '';
-    this.ea = query.email || '';
-    this.add = query.address || '';
-    this.con = query.contact || '';
-  }
+    // Populate fields if editing
+    this.fn = query.firstName || "";
+    this.mn = query.middleName || "";
+    this.ln = query.lastName || "";
+    this.ea = query.email || "";
+    this.add = query.address || "";
+    this.con = query.contact || "";
+
+    // Determine if the operation is an update
+    this.selectedId = this.$route.params.id || null;
+    this.isUpdate = !!this.selectedId;
+  },
+  methods: {
+    saveUser() {
+      const userData = {
+        firstName: this.fn,
+        middleName: this.mn,
+        lastName: this.ln,
+        email: this.ea,
+        address: this.add,
+        contact: this.con,
+      };
+
+      this.btnLoadingState = true;
+
+      if (this.isUpdate) {
+        // Update logic
+        axios
+          .put(`https://jsonplaceholder.typicode.com/users/${this.selectedId}`, userData)
+          .then((response) => {
+            if (response.status === 200) {
+              console.log("User updated successfully:", response.data);
+
+              // Update the local table row
+              const index = this.rows.findIndex((row) => row.id === this.selectedId);
+              if (index !== -1) {
+                this.$set(this.rows, index, { ...this.rows[index], ...response.data });
+              }
+
+              this.resetForm();
+            }
+          })
+          .catch((error) => console.error("Failed to update user:", error))
+          .finally(() => {
+            this.btnLoadingState = false;
+          });
+      } else {
+        // Add logic
+        axios
+          .post("https://jsonplaceholder.typicode.com/users", userData)
+          .then((response) => {
+            if (response.status === 201) {
+              console.log("User added successfully:", response.data);
+
+              // Add the user to the table
+              this.rows.unshift(response.data);
+
+              this.resetForm();
+            }
+          })
+          .catch((error) => console.error("Failed to add user:", error))
+          .finally(() => {
+            this.btnLoadingState = false;
+          });
+      }
+    },
+    resetForm() {
+      // Reset form and state
+      this.fn = "";
+      this.mn = "";
+      this.ln = "";
+      this.ea = "";
+      this.add = "";
+      this.con = "";
+      this.isUpdate = false;
+      this.selectedId = null;
+
+      // Navigate back to the user list
+      this.$router.push({ name: "User" });
+    },
+  },
 };
 </script>
 
@@ -106,9 +190,8 @@ export default {
   height: 500px;
   justify-content: center;
 }
-.btnSave{
-  position: sticky;
+.btnSave {
   margin-top: 10vh;
-  left: 118vh;
+  left: 67vh;
 }
 </style>

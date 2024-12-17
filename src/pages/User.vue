@@ -1,14 +1,27 @@
 <template>
   <q-page class="q-pa-md">
     <div class="user-container">
-      <!-- Search Input -->
-      <div class="q-mb-md">
-        <q-input
-          v-model="searchQuery"
-          placeholder="Search users"
-          outlined
-          @input="filterUsers"
-        />
+      <!-- Header with Search and Add User -->
+      <div class="header q-mb-md row justify-between items-center">
+        <div class="search-container">
+          <q-input
+            v-model="searchQuery"
+            placeholder="Search users"
+            outlined
+            @input="filterUsers"
+          />
+        </div>
+        <div class="action-container">
+          <q-btn
+            flat
+            round
+            dense
+            color="primary"
+            label="Add User"
+            icon="add"
+            @click="addUser"
+          />
+        </div>
       </div>
 
       <!-- Users Table -->
@@ -38,7 +51,7 @@
               dense
               color="negative"
               icon="delete"
-               @click="deleteUser(props.row.id)"
+              @click="deleteUser(props.row.id)"
             />
           </div>
         </template>
@@ -46,6 +59,7 @@
     </div>
   </q-page>
 </template>
+
 
 <script>
 import { ref, watch } from 'vue';
@@ -56,12 +70,10 @@ export default {
   setup() {
     const router = useRouter();
 
-    // Reactive State
-    const users = ref([]);             // Full user list
-    const filteredUsers = ref([]);     // Filtered user list
-    const searchQuery = ref('');       // Search input
+    const users = ref([]);
+    const filteredUsers = ref([]);
+    const searchQuery = ref('');
 
-    // Table Columns
     const columns = ref([
       { name: 'firstName', label: 'First Name', field: 'firstName', align: 'left' },
       { name: 'middleName', label: 'Middle Name', field: 'middleName', align: 'left' },
@@ -72,7 +84,6 @@ export default {
       { name: 'actions', label: 'Actions', field: 'actions', align: 'right' }
     ]);
 
-    // Fetch Users
     const fetchUsers = async () => {
       try {
         const response = await axios.get('https://jsonplaceholder.typicode.com/users');
@@ -92,20 +103,11 @@ export default {
       }
     };
 
-    // Watch searchQuery to filter users dynamically
-    watch(searchQuery, (newQuery) => {
-      const query = newQuery.toLowerCase();
-      filteredUsers.value = users.value.filter(user =>
-        (user.firstName && user.firstName.toLowerCase().includes(query)) ||
-        (user.middleName && user.middleName.toLowerCase().includes(query)) ||
-        (user.lastName && user.lastName.toLowerCase().includes(query)) ||
-        (user.address && user.address.toLowerCase().includes(query)) ||
-        (user.email && user.email.toLowerCase().includes(query))
-      );
-    });
+    const addUser = () => {
+      router.push({ name: 'CreateUser' });
+    };
 
-    // Edit User Logic
-    const editUser = (row) => {
+    const editUser = async (row) => {
       router.push({
         name: 'CreateUser',
         params: { id: row.id },
@@ -118,9 +120,23 @@ export default {
           contact: row.contact
         }
       });
+      try {
+  const response = await axios.put(`https://jsonplaceholder.typicode.com/users/${row.id}`, userData);
+
+  if (response.status === 200) {
+    console.log('User updated successfully');
+
+    const index = users.value.findIndex(user => user.id === row.id);
+    if (index !== -1) {
+      users.value[index] = { ...updatedUserData, id: row.id };
+      filteredUsers.value = users.value;
+    }
+  }
+} catch (err) {
+  console.error('Update failed:', err);
+}
     };
 
-    // Delete User Logic
     const deleteUser = async (userId) => {
       try {
         const response = await axios.delete(`https://jsonplaceholder.typicode.com/users/${userId}`);
@@ -134,7 +150,17 @@ export default {
       }
     };
 
-    // Initialize Data Fetch
+    watch(searchQuery, (newQuery) => {
+      const query = newQuery.toLowerCase();
+      filteredUsers.value = users.value.filter(user =>
+        (user.firstName && user.firstName.toLowerCase().includes(query)) ||
+        (user.middleName && user.middleName.toLowerCase().includes(query)) ||
+        (user.lastName && user.lastName.toLowerCase().includes(query)) ||
+        (user.address && user.address.toLowerCase().includes(query)) ||
+        (user.email && user.email.toLowerCase().includes(query))
+      );
+    });
+
     fetchUsers();
 
     return {
@@ -142,13 +168,14 @@ export default {
       users,
       filteredUsers,
       columns,
+      addUser,
       editUser,
       deleteUser
     };
   }
 };
-
 </script>
+
 
 <style scoped>
 .user-container {
@@ -166,6 +193,6 @@ export default {
 }
 
 .q-input {
-  max-width: 300px;
+  max-width: 300px; 
 }
 </style>

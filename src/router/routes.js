@@ -4,23 +4,28 @@ const routes = [
     component: () => import('layouts/MainLayout.vue'),
     children: [
       {
-        path: 'User', // Removed leading slash
+        path: 'User',
+        name: 'User',
         component: () => import('src/pages/User.vue'),
       },
       {
-        path: '/create-user/:id',
-        name: 'CreateUser', // Removed leading slash
+        path: 'create-user/:id',
+        name: 'CreateUser',
         component: () => import('src/pages/CreateUser.vue'),
       },
-    ],
+      {
+        path: 'CreateUser',
+        name: 'CreateUser',
+        component: () => import('src/pages/CreateUser.vue'),
+      }
+    ]
   },
 
-  // Always leave this as last one,
-  // but you can also remove it
+  // Catch all route for handling 404 pages
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue'),
-  },
+  }
 ];
 
 export default routes;
